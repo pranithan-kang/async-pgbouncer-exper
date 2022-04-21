@@ -8,18 +8,18 @@ async def main():
     # conn = await asyncpg.connect('postgresql://postgres:postgres@pgbouncer:5432/postgres')
     conn = await asyncpg.connect('postgresql://postgres:postgres@pgpool:5432/postgres')
     # Execute a statement to create a new table.
-    # await conn.execute('''
-    #     CREATE TABLE users(
-    #         id serial PRIMARY KEY,
-    #         name text,
-    #         dob date
-    #     )
-    # ''')
+    await conn.execute('''
+        CREATE TABLE users(
+            id serial PRIMARY KEY,
+            name text,
+            dob date
+        )
+    ''')
 
     # Insert a record into the created table.
-    # await conn.execute('''
-    #     INSERT INTO users(name, dob) VALUES($1, $2)
-    # ''', 'Bob', datetime.date(1984, 3, 1))
+    await conn.execute('''
+        INSERT INTO users(name, dob) VALUES($1, $2)
+    ''', 'Bob', datetime.date(1984, 3, 1))
 
     # Select a row from the table.
     row = await conn.fetchrow(

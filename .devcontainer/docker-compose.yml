@@ -38,7 +38,7 @@ services:
       - REPMGR_NODE_NETWORK_NAME=pg-0
         
   pgpool:
-    image: bitnami/pgpool:4.2.3
+    image: bitnami/pgpool:latest
     environment:
       - PGPOOL_BACKEND_NODES=0:pg-0:5432
       - PGPOOL_SR_CHECK_USER=postgres
