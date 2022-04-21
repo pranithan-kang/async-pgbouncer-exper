@@ -1,0 +1,78 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: ..
+      dockerfile: .devcontainer/Dockerfile
+      args:
+        # Update 'VARIANT' to pick a version of Python: 3, 3.10, 3.9, 3.8, 3.7, 3.6
+        # Append -bullseye or -buster to pin to an OS version.
+        # Use -bullseye variants on local arm64/Apple Silicon.
+        VARIANT: "3.8"
+        # Optional Node.js version to install
+        NODE_VERSION: "none"
+
+    volumes:
+      - ..:/workspace:cached
+
+    # Overrides default command so things don't shut down after the process ends.
+    command: sleep infinity
+
+    # Runs app on the same network as the database container, allows "forwardPorts" in devcontainer.json function.
+    network_mode: service:pgbouncer
+    # Uncomment the next line to use a non-root user for all processes.
+    # user: vscode
+
+    # Use "forwardPorts" in **devcontainer.json** to forward an app port locally.
+    # (Adding the "ports" property to this file will not forward from a Codespace.)
+
+  pg-0:
+    image: bitnami/postgresql-repmgr:13
+    environment:
+      - POSTGRESQL_PASSWORD=postgres
+      - REPMGR_PASSWORD=repmgr
+      - REPMGR_PRIMARY_HOST=pg-0
+      - REPMGR_PARTNER_NODES=pg-0
+      - REPMGR_NODE_NAME=pg-0
+      - REPMGR_NODE_NETWORK_NAME=pg-0
+        
+  pgpool:
+    image: bitnami/pgpool:4.2.3
+    environment:
+      - PGPOOL_BACKEND_NODES=0:pg-0:5432
+      - PGPOOL_SR_CHECK_USER=postgres
+      - PGPOOL_SR_CHECK_PASSWORD=postgres
+      - PGPOOL_ENABLE_LDAP=no
+      - PGPOOL_POSTGRES_USERNAME=postgres
+      - PGPOOL_POSTGRES_PASSWORD=postgres
+      - PGPOOL_ADMIN_USERNAME=admin
+      - PGPOOL_ADMIN_PASSWORD=admin_pass
+      - PGPOOL_ENABLE_LOG_CONNECTIONS=yes
+      - PGPOOL_ENABLE_LOG_PER_NODE_STATEMENT=yes
+      - PGPOOL_CHILD_LIFE_TIME=360
+      - PGPOOL_ENABLE_LOAD_BALANCING=yes
+      - PGPOOL_NUM_INIT_CHILDREN=220 #220 #75 #3300
+      - PGPOOL_MAX_POOL=15  #20 #1
+    healthcheck:
+      test: ["CMD", "/opt/bitnami/scripts/pgpool/healthcheck.sh"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+          
+  pgbouncer:
+    image: bitnami/pgbouncer:latest
+    depends_on:
+      - pgpool
+    environment:
+      - POSTGRESQL_PASSWORD=postgres
+      - POSTGRESQL_HOST=pgpool
+      - POSTGRESQL_PORT=5432
+      - PGBOUNCER_POOL_MODE=transaction
+      - PGBOUNCER_PORT=5432
+      - PGBOUNCER_QUERY_WAIT_TIMEOUT=240
+      - PGBOUNCER_MAX_CLIENT_CONN=3300
+      - PGBOUNCER_DEFAULT_POOL_SIZE=660 #300
+      - PGBOUNCER_IGNORE_STARTUP_PARAMETERS=extra_float_digits
+    ports:
+      - 5432:5432
